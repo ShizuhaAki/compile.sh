@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 function showHelp {
 cat <<EOF
 compile.sh, a tiny script for compiling and testing simple C++ programs
@@ -103,6 +103,28 @@ do
   esac;
 done;
 set -- "${POSITIONAL[@]}" # restore positional parameters
+
+
+# === Environment sanity checking ===
+if [ "$VERBOSE" = "1" ];
+then
+  echo "Begin sanity checking";
+fi;
+declare -r CMDS="g++ tput diff"
+for cmd in $CMDS
+do
+  type -P $cmd >> /dev/null && {
+    if [ "$VERBOSE" = "1" ];
+    then
+      echo "${green}${bold}$cmd${normal}${green} found in PATH${normal}"
+    fi;
+  } || {
+    echo "${red}$cmd not found in PATH. ${normal}" >&2;
+    exit 1;
+  }
+done
+
+
 # === CLI argument checking ===
 if [ "$SANITIZE" = "1" ];
 then 
@@ -116,7 +138,7 @@ then
   echo "${red}bad usage: -i | --input-file contradicts with -c | --compare${normal}";
   exit 1;
 fi;
-# === Environment sanity checking ===
+
 
 if [ $(grep error $PWD/tmp/compiler_output | wc -l) -ge 1 ];
 then 
@@ -143,11 +165,13 @@ then
   while true;
   do
     i=$(expr $i + 1);
-    input=${CMPPATH}${FILE}_$i.in;
-    output=${CMPPATH}${FILE}_$i.out;
+    input=${CMPPATH}/${FILE}_$i.in;
+    output=${CMPPATH}/${FILE}_$i.out;
     if [ -f "$input" ] && [ -f "$output" ];
     then
+      echo "${gray}Running${normal} on test $i";
       $PWD/tmp/$FILE < $input > "user_out.txt";
+      tput cuu1;
       tput el;
       if diff -q "user_out.txt" $output;
       then
